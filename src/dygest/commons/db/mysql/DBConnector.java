@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package dygest.commons.db;
+package dygest.commons.db.mysql;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
