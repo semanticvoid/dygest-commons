@@ -14,9 +14,13 @@ import com.amazonaws.sdb.model.CreateDomainResponse;
 import com.amazonaws.sdb.model.GetAttributesRequest;
 import com.amazonaws.sdb.model.GetAttributesResponse;
 import com.amazonaws.sdb.model.GetAttributesResult;
+import com.amazonaws.sdb.model.Item;
 import com.amazonaws.sdb.model.PutAttributesRequest;
 import com.amazonaws.sdb.model.PutAttributesResponse;
 import com.amazonaws.sdb.model.ReplaceableAttribute;
+import com.amazonaws.sdb.model.SelectRequest;
+import com.amazonaws.sdb.model.SelectResponse;
+import com.amazonaws.sdb.model.SelectResult;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -86,6 +90,32 @@ public class DocumentDB {
         }
 
         return attrs;
+    }
+
+    public List<HashMap<String, String>> select(String query) {
+        List<HashMap<String, String>> queryResults = new ArrayList<HashMap<String, String>>();
+        SelectRequest request = new SelectRequest();
+        request.setSelectExpression(query);
+
+        try {
+            SelectResponse response = service.select(request);
+            if(response.isSetSelectResult()) {
+                SelectResult  selectResult = response.getSelectResult();
+                List<Item> itemList = selectResult.getItem();
+                for(Item item : itemList) {
+                    HashMap<String, String> itemAttrs = new HashMap<String, String>();
+                    List<Attribute> attributeList = item.getAttribute();
+                    for(Attribute attribute : attributeList) {
+                        itemAttrs.put(attribute.getName(), attribute.getValue());
+                    }
+                    queryResults.add(itemAttrs);
+                }
+            }
+        } catch(AmazonSimpleDBException ex) {
+            return null;
+        }
+
+        return queryResults;
     }
 
 //    public static void main(String[] args) {
