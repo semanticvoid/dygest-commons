@@ -5,15 +5,11 @@
 
 package dygest.commons.store.s3;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import org.jclouds.aws.s3.S3Connection;
-import org.jclouds.aws.s3.S3Context;
-import org.jclouds.aws.s3.S3ContextFactory;
+import org.jets3t.service.S3Service;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
+import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.security.AWSCredentials;
 
 /**
  *
@@ -21,51 +17,44 @@ import org.jclouds.aws.s3.S3ContextFactory;
  */
 public class S3Accessor {
 
-    S3Context context = null;
-    S3Connection connection = null;
-    String bucket = null;
+    private static S3Service s3Service = null;
 
-    public S3Accessor(String bucket) throws Exception {
-        this.bucket = bucket;
-        context = S3ContextFactory.createS3Context("046T8W780QSWZNENHN82", "PFpfRBEvW1UityT1dFvnR+fNLGA2MVxLycgeskYL");
-        connection = context.getConnection();
-        Future<Boolean> successfullyCreated = connection.putBucketIfNotExists("mybucketname");
-        if(!successfullyCreated.get(10, TimeUnit.SECONDS)) {
-            throw new Exception("Error creating bucket");
-        }
-    }
-
-    public InputStream get(String uri) {
-        Map<String, InputStream> map = context.createInputStreamMap(this.bucket);
-        if(map.containsKey(uri)) {
-            return map.get(uri);
-        }
-
-        return null;
-    }
-
-    public boolean contains(String uri) {
-        Map<String, InputStream> map = context.createInputStreamMap(this.bucket);
-        return map.containsKey(uri);
-    }
-
-    public boolean put(String uri, File obj) {
-        Map<String, InputStream> map = context.createInputStreamMap(this.bucket);
+    static {
         try {
-            map.put(uri, new FileInputStream(obj));
-            return true;
+            s3Service = new RestS3Service(new AWSCredentials("046T8W780QSWZNENHN82", "PFpfRBEvW1UityT1dFvnR+fNLGA2MVxLycgeskYL"));
         } catch(Exception e) {
             e.printStackTrace();
         }
-
-        return false;
     }
+    
+    private String bucketName = null;
+    private S3Bucket bucket = null;
 
-    @Override
-    public void finalize() {
-        if(context != null) {
-            context.close();
+    public S3Accessor(String bucket) throws Exception {
+        this.bucketName = bucket;
+        if(s3Service != null) {
+            this.bucket = s3Service.getOrCreateBucket(bucketName);
         }
     }
 
+    public boolean put(String uri, String data) {
+        try {
+            S3Object object = new S3Object(uri, data);
+            s3Service.putObject(bucket, object);
+        } catch(Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
+    }
+
+    public static void main(String[] args) {
+        try {
+            S3Accessor s3 = new S3Accessor("dygest-testbucket");
+            s3.put("testdata", "this is a test");
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
