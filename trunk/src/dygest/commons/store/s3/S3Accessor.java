@@ -6,6 +6,9 @@
 package dygest.commons.store.s3;
 
 import org.jets3t.service.S3Service;
+import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.GroupGrantee;
+import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -37,9 +40,30 @@ public class S3Accessor {
         }
     }
 
-    public boolean put(String uri, String data) {
+    public boolean makeBucketPublic() {
+        try {
+            AccessControlList bucketAcl = s3Service.getBucketAcl(bucketName);
+            bucketAcl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
+            bucket.setAcl(bucketAcl);
+            s3Service.putBucketAcl(bucket);
+        } catch(Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
+    }
+
+    public boolean put(String uri, String data, boolean isPublic) {
         try {
             S3Object object = new S3Object(uri, data);
+
+            if(isPublic) {
+                AccessControlList bucketAcl = s3Service.getBucketAcl(bucketName);
+                bucketAcl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
+                object.setAcl(bucketAcl);
+            }
+
             s3Service.putObject(bucket, object);
         } catch(Exception e) {
             e.printStackTrace();
@@ -52,7 +76,7 @@ public class S3Accessor {
     public static void main(String[] args) {
         try {
             S3Accessor s3 = new S3Accessor("dygest-testbucket");
-            s3.put("testdata", "this is a test");
+            s3.put("testdata", "this is a test", false);
         } catch(Exception e) {
             e.printStackTrace();
         }
