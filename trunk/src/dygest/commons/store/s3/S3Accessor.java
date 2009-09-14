@@ -5,6 +5,7 @@
 
 package dygest.commons.store.s3;
 
+import java.util.Date;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GroupGrantee;
@@ -57,7 +58,7 @@ public class S3Accessor {
     public boolean put(String uri, String data, boolean isPublic) {
         try {
             S3Object object = new S3Object(uri, data);
-
+            object.addMetadata("Expires", new Date(new Date().getTime() + (1800000)).toGMTString());
             if(isPublic) {
                 AccessControlList bucketAcl = s3Service.getBucketAcl(bucketName);
                 bucketAcl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
